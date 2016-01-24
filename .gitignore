@@ -1,0 +1,6 @@
+*.swp
+*.elf
+*.hex
+*.o
+target
+Cargo.lock

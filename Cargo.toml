@@ -1,0 +1,16 @@
+[package]
+name = "blink"
+version = "0.1.0"
+authors = ["Michael Daffin <michael@daffin.io>"]
+build = "build.rs"
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 2
+debug = false
+
+[target.thumbv7em-none-eabi.dependencies.core]
+git = "https://github.com/hackndev/rust-libcore"
