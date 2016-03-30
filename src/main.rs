@@ -1,10 +1,10 @@
-#![feature(lang_items,no_std,core_intrinsics,asm,start)]
+#![feature(lang_items,core_intrinsics,asm,start)]
 #![no_std]
 #![crate_type="staticlib"]
 
 use core::intrinsics::{volatile_store};
 
-#[lang="stack_exhausted"] extern fn stack_exhausted() {}
+//#[lang="stack_exhausted"] extern fn stack_exhausted() {}
 #[lang="eh_personality"] extern fn eh_personality() {}
 #[lang="panic_fmt"]
 #[no_mangle]

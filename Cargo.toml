@@ -12,5 +12,5 @@ debug = true
 opt-level = 2
 debug = false
 
-[target.thumbv7em-none-eabi.dependencies.core]
+[target.thumbv7em-none-eabi.dependencies.rust-libcore]
 git = "https://github.com/hackndev/rust-libcore"
