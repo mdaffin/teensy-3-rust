@@ -2,26 +2,25 @@
 #![no_std]
 #![crate_type="staticlib"]
 
-use core::intrinsics::{volatile_store};
+use core::intrinsics::volatile_store;
 
-//#[lang="stack_exhausted"] extern fn stack_exhausted() {}
-#[lang="eh_personality"] extern fn eh_personality() {}
+#[lang="eh_personality"]
+extern "C" fn eh_personality() {}
 #[lang="panic_fmt"]
 #[no_mangle]
-pub extern fn rust_begin_unwind(_fmt: &core::fmt::Arguments, _file_line: &(&'static str, usize)) -> !
-{
+pub extern "C" fn rust_begin_unwind(_fmt: &core::fmt::Arguments,
+                                    _file_line: &(&'static str, usize))
+                                    -> ! {
     loop {}
 }
 
 #[no_mangle]
-pub extern fn __aeabi_unwind_cpp_pr0() -> ()
-{
+pub extern "C" fn __aeabi_unwind_cpp_pr0() -> () {
     loop {}
 }
 
 #[no_mangle]
-pub extern fn __aeabi_unwind_cpp_pr1() -> ()
-{
+pub extern "C" fn __aeabi_unwind_cpp_pr1() -> () {
     loop {}
 }
 
@@ -33,7 +32,7 @@ macro_rules! PORTC_PCR5   {() => (0x4004B014 as *mut u32);} // PORTC_PCR5 - page
 macro_rules! GPIOC_PDDR   {() => (0x400FF094 as *mut u32);} // GPIOC_PDDR - page 1334,1337
 macro_rules! GPIOC_PDOR   {() => (0x400FF080 as *mut u32);} // GPIOC_PDOR - page 1334,1335
 
-extern {
+extern "C" {
     static mut _sflashdata: u32;
     static mut _sdata: u32;
     static mut _edata: u32;
@@ -45,36 +44,29 @@ extern {
 #[link_section=".vectors"]
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static ISRVectors: [Option<unsafe extern fn()>; 16] = [
-  Some(_estack),          // Stack pointer
-  Some(startup),          // Reset
-  Some(isr_nmi),          // NMI
-  Some(isr_hardfault),    // Hard Fault
-  Some(isr_mmfault),      // CM3 Memory Management Fault
-  Some(isr_busfault),     // CM3 Bus Fault
-  Some(isr_usagefault),   // CM3 Usage Fault
-  Some(isr_reserved_1),   // Reserved - Used as NXP Checksum
-  None,                   // Reserved
-  None,                   // Reserved
-  None,                   // Reserved
-  Some(isr_svcall),       // SVCall
-  Some(isr_debugmon),     // Reserved for debug
-  None,                   // Reserved
-  Some(isr_pendsv),       // PendSV
-  Some(isr_systick),      // SysTick
-];
+pub static ISRVectors: [Option<unsafe extern "C" fn()>; 16] = [Some(_estack), // Stack pointer
+                                                               Some(startup), // Reset
+                                                               Some(isr_nmi), // NMI
+                                                               Some(isr_hardfault), // Hard Fault
+                                                               Some(isr_mmfault), /* CM3 Memory Management Fault */
+                                                               Some(isr_busfault), /* CM3 Bus Fault */
+                                                               Some(isr_usagefault), /* CM3 Usage Fault */
+                                                               Some(isr_reserved_1), /* Reserved - Used as NXP Checksum */
+                                                               None, // Reserved
+                                                               None, // Reserved
+                                                               None, // Reserved
+                                                               Some(isr_svcall), // SVCall
+                                                               Some(isr_debugmon), /* Reserved for debug */
+                                                               None, // Reserved
+                                                               Some(isr_pendsv), // PendSV
+                                                               Some(isr_systick) /* SysTick */];
 
 #[link_section=".flashconfig"]
 #[allow(non_upper_case_globals)]
 #[no_mangle]
-pub static flashconfigbytes: [usize; 4] = [
-    0xFFFFFFFF,
-    0xFFFFFFFF,
-    0xFFFFFFFF,
-    0xFFFFFFFE,
-];
+pub static flashconfigbytes: [usize; 4] = [0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE];
 
-pub unsafe extern fn startup() {
+pub unsafe extern "C" fn startup() {
     let mut src: *mut u32 = &mut _sflashdata;
     let mut dest: *mut u32 = &mut _sdata;
 
@@ -118,7 +110,7 @@ pub fn led_off() {
 }
 
 pub fn delay(ms: i32) {
-    for _ in 0..ms*250 {
+    for _ in 0..ms * 250 {
         unsafe {
             asm!("NOP");
         }
@@ -143,13 +135,33 @@ fn lang_start(_: isize, _: *const *const u8) -> isize {
 }
 
 
-pub unsafe extern fn isr_nmi() { loop {} }
-pub unsafe extern fn isr_hardfault() { loop {} }
-pub unsafe extern fn isr_mmfault() { loop {} }
-pub unsafe extern fn isr_busfault() { loop {} }
-pub unsafe extern fn isr_usagefault() { loop {} }
-pub unsafe extern fn isr_reserved_1() { loop {} }
-pub unsafe extern fn isr_svcall() { loop {} }
-pub unsafe extern fn isr_debugmon() { loop {} }
-pub unsafe extern fn isr_pendsv() { loop {} }
-pub unsafe extern fn isr_systick() { loop {} }
+pub unsafe extern "C" fn isr_nmi() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_hardfault() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_mmfault() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_busfault() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_usagefault() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_reserved_1() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_svcall() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_debugmon() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_pendsv() {
+    loop {}
+}
+pub unsafe extern "C" fn isr_systick() {
+    loop {}
+}
