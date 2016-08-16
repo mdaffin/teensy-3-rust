@@ -24,13 +24,14 @@ pub extern "C" fn __aeabi_unwind_cpp_pr1() -> () {
     loop {}
 }
 
-macro_rules! GPIOC_PDOR   {() => (0x400FF080 as *mut u32);} // GPIOC_PDOR - page 1334,1335
-macro_rules! WDOG_UNLOCK  {() => (0x4005200E as *mut u16);} // Watchdog Unlock register
-macro_rules! WDOG_STCTRLH {() => (0x40052000 as *mut u16);} // Watchdog Status and Control Register High
-macro_rules! GPIO_CONFIG  {() => (0x40048038 as *mut u32);}
-macro_rules! PORTC_PCR5   {() => (0x4004B014 as *mut u32);} // PORTC_PCR5 - page 223/227
-macro_rules! GPIOC_PDDR   {() => (0x400FF094 as *mut u32);} // GPIOC_PDDR - page 1334,1337
-macro_rules! GPIOC_PDOR   {() => (0x400FF080 as *mut u32);} // GPIOC_PDOR - page 1334,1335
+const GPIOC_PDOR: u32 = 0x400FF080; // GPIOC_PDOR - page 1334,1335
+const WDOG_UNLOCK: u32 = 0x4005200E; // Watchdog Unlock register
+const WDOG_STCTRLH: u32 = 0x40052000; // Watchdog Status and Control Register High
+const GPIO_CONFIG: u32 = 0x40048038;
+const PORTC_PCR5: u32 = 0x4004B014; // PORTC_PCR5 - page 223/227
+const GPIOC_PDDR: u32 = 0x400FF094; // GPIOC_PDDR - page 1334,1337
+
+macro_rules! reg_write { ($x:expr, $t:ty, $v:expr) => ( volatile_store($x as *mut $t, $v) ) }
 
 extern "C" {
     static mut _sflashdata: u32;
@@ -70,9 +71,9 @@ pub unsafe extern "C" fn startup() {
     let mut src: *mut u32 = &mut _sflashdata;
     let mut dest: *mut u32 = &mut _sdata;
 
-    volatile_store(WDOG_UNLOCK!(), 0xC520);
-    volatile_store(WDOG_UNLOCK!(), 0xD928);
-    volatile_store(WDOG_STCTRLH!(), 0x01D2);
+    reg_write!(WDOG_UNLOCK, u16, 0xC520);
+    reg_write!(WDOG_UNLOCK, u16, 0xD928);
+    reg_write!(WDOG_STCTRLH, u16, 0x01D2);
 
     while dest < &mut _edata as *mut u32 {
         *dest = *src;
@@ -88,24 +89,24 @@ pub unsafe extern "C" fn startup() {
     }
 
     // Enable system clock on all GPIO ports - page 254
-    *GPIO_CONFIG!() = 0x00043F82; // 0b1000011111110000010
+    reg_write!(GPIO_CONFIG, u32, 0x00043F82); // 0b1000011111110000010
     // Configure the led pin
-    *PORTC_PCR5!() = 0x00000143; // Enables GPIO | DSE | PULL_ENABLE | PULL_SELECT - page 227
+    reg_write!(PORTC_PCR5, u32, 0x00000143); // Enables GPIO | DSE | PULL_ENABLE | PULL_SELECT - page 227
     // Set the led pin to output
-    *GPIOC_PDDR!() = 0x20; // pin 5 on port c
+    reg_write!(GPIOC_PDDR, u32, 0x20);
 
     rust_loop();
 }
 
 pub fn led_on() {
     unsafe {
-        volatile_store(GPIOC_PDOR!(), 0x20);
+        reg_write!(GPIOC_PDOR, u32, 0x20);
     }
 }
 
 pub fn led_off() {
     unsafe {
-        volatile_store(GPIOC_PDOR!(), 0x0);
+        reg_write!(GPIOC_PDOR, u32, 0x0);
     }
 }
 
