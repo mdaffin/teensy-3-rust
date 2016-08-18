@@ -40,13 +40,14 @@ extern "C" {
     static mut _sbss: u32;
     static mut _ebss: u32;
     fn _estack();
+    fn main();
 }
 
 #[link_section=".vectors"]
 #[allow(non_upper_case_globals)]
 #[no_mangle]
 pub static ISRVectors: [Option<unsafe extern "C" fn()>; 16] = [Some(_estack), // Stack pointer
-                                                               Some(startup), // Reset
+                                                               Some(main), // Reset
                                                                Some(isr_nmi), // NMI
                                                                Some(isr_hardfault), // Hard Fault
                                                                Some(isr_mmfault), /* CM3 Memory Management Fault */
@@ -67,35 +68,35 @@ pub static ISRVectors: [Option<unsafe extern "C" fn()>; 16] = [Some(_estack), //
 #[no_mangle]
 pub static flashconfigbytes: [usize; 4] = [0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE];
 
-pub unsafe extern "C" fn startup() {
-    let mut src: *mut u32 = &mut _sflashdata;
-    let mut dest: *mut u32 = &mut _sdata;
+pub fn init() {
+    unsafe {
+        let mut src: *mut u32 = &mut _sflashdata;
+        let mut dest: *mut u32 = &mut _sdata;
 
-    reg_write!(WDOG_UNLOCK, u16, 0xC520);
-    reg_write!(WDOG_UNLOCK, u16, 0xD928);
-    reg_write!(WDOG_STCTRLH, u16, 0x01D2);
+        reg_write!(WDOG_UNLOCK, u16, 0xC520);
+        reg_write!(WDOG_UNLOCK, u16, 0xD928);
+        reg_write!(WDOG_STCTRLH, u16, 0x01D2);
 
-    while dest < &mut _edata as *mut u32 {
-        *dest = *src;
-        dest = ((dest as u32) + 4) as *mut u32;
-        src = ((src as u32) + 4) as *mut u32;
+        while dest < &mut _edata as *mut u32 {
+            *dest = *src;
+            dest = ((dest as u32) + 4) as *mut u32;
+            src = ((src as u32) + 4) as *mut u32;
+        }
+
+        dest = &mut _sbss as *mut u32;
+
+        while dest < &mut _edata as *mut u32 {
+            *dest = 0;
+            dest = ((dest as u32) + 4) as *mut u32;
+        }
+
+        // Enable system clock on all GPIO ports - page 254
+        reg_write!(GPIO_CONFIG, u32, 0x00043F82); // 0b1000011111110000010
+        // Configure the led pin
+        reg_write!(PORTC_PCR5, u32, 0x00000143); // Enables GPIO | DSE | PULL_ENABLE | PULL_SELECT - page 227
+        // Set the led pin to output
+        reg_write!(GPIOC_PDDR, u32, 0x20);
     }
-
-    dest = &mut _sbss as *mut u32;
-
-    while dest < &mut _edata as *mut u32 {
-        *dest = 0;
-        dest = ((dest as u32) + 4) as *mut u32;
-    }
-
-    // Enable system clock on all GPIO ports - page 254
-    reg_write!(GPIO_CONFIG, u32, 0x00043F82); // 0b1000011111110000010
-    // Configure the led pin
-    reg_write!(PORTC_PCR5, u32, 0x00000143); // Enables GPIO | DSE | PULL_ENABLE | PULL_SELECT - page 227
-    // Set the led pin to output
-    reg_write!(GPIOC_PDDR, u32, 0x20);
-
-    rust_loop();
 }
 
 pub fn led_on() {
@@ -117,24 +118,6 @@ pub fn delay(ms: i32) {
         }
     }
 }
-
-pub fn rust_loop() {
-    loop {
-        led_on();
-        delay(1000);
-        led_off();
-        delay(1000);
-    }
-}
-
-#[start]
-fn lang_start(_: isize, _: *const *const u8) -> isize {
-    unsafe {
-        startup();
-    }
-    0
-}
-
 
 pub unsafe extern "C" fn isr_nmi() {
     loop {}
