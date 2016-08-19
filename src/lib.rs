@@ -2,21 +2,11 @@
 #![no_std]
 #![crate_type="staticlib"]
 
+pub mod lang;
+pub mod isr;
+pub mod mem;
+
 use core::intrinsics::volatile_store;
-
-#[lang="eh_personality"]
-extern "C" fn eh_personality() {}
-#[lang="panic_fmt"]
-extern "C" fn rust_begin_unwind(_fmt: &core::fmt::Arguments,
-                                    _file_line: &(&'static str, usize))
-                                    -> ! {
-    loop {}
-}
-
-#[no_mangle]
-pub extern "C" fn __aeabi_unwind_cpp_pr0() -> () {
-    loop {}
-}
 
 const GPIOC_PDOR: u32 = 0x400FF080; // GPIOC_PDOR - page 1334,1335
 const WDOG_UNLOCK: u32 = 0x4005200E; // Watchdog Unlock register
@@ -27,62 +17,13 @@ const GPIOC_PDDR: u32 = 0x400FF094; // GPIOC_PDDR - page 1334,1337
 
 macro_rules! reg_write { ($x:expr, $t:ty, $v:expr) => ( volatile_store($x as *mut $t, $v) ) }
 
-extern "C" {
-    static mut _sflashdata: u32;
-    static mut _sdata: u32;
-    static mut _edata: u32;
-    static mut _sbss: u32;
-    static mut _ebss: u32;
-    fn _estack();
-    fn main();
-}
-
-#[link_section=".vectors"]
-#[allow(non_upper_case_globals)]
-#[no_mangle]
-pub static ISRVectors: [Option<unsafe extern "C" fn()>; 16] = [Some(_estack), // Stack pointer
-                                                               Some(main), // Reset
-                                                               Some(isr_nmi), // NMI
-                                                               Some(isr_hardfault), // Hard Fault
-                                                               Some(isr_mmfault), /* CM3 Memory Management Fault */
-                                                               Some(isr_busfault), /* CM3 Bus Fault */
-                                                               Some(isr_usagefault), /* CM3 Usage Fault */
-                                                               Some(isr_reserved_1), /* Reserved - Used as NXP Checksum */
-                                                               None, // Reserved
-                                                               None, // Reserved
-                                                               None, // Reserved
-                                                               Some(isr_svcall), // SVCall
-                                                               Some(isr_debugmon), /* Reserved for debug */
-                                                               None, // Reserved
-                                                               Some(isr_pendsv), // PendSV
-                                                               Some(isr_systick) /* SysTick */];
-
-#[link_section=".flashconfig"]
-#[allow(non_upper_case_globals)]
-#[no_mangle]
-pub static flashconfigbytes: [usize; 4] = [0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE];
-
 pub fn init() {
     unsafe {
-        let mut src: *mut u32 = &mut _sflashdata;
-        let mut dest: *mut u32 = &mut _sdata;
-
         reg_write!(WDOG_UNLOCK, u16, 0xC520);
         reg_write!(WDOG_UNLOCK, u16, 0xD928);
         reg_write!(WDOG_STCTRLH, u16, 0x01D2);
 
-        while dest < &mut _edata as *mut u32 {
-            *dest = *src;
-            dest = ((dest as u32) + 4) as *mut u32;
-            src = ((src as u32) + 4) as *mut u32;
-        }
-
-        dest = &mut _sbss as *mut u32;
-
-        while dest < &mut _edata as *mut u32 {
-            *dest = 0;
-            dest = ((dest as u32) + 4) as *mut u32;
-        }
+	mem::init();
 
         // Enable system clock on all GPIO ports - page 254
         reg_write!(GPIO_CONFIG, u32, 0x00043F82); // 0b1000011111110000010
@@ -111,35 +52,4 @@ pub fn delay(ms: i32) {
             asm!("NOP");
         }
     }
-}
-
-pub unsafe extern "C" fn isr_nmi() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_hardfault() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_mmfault() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_busfault() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_usagefault() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_reserved_1() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_svcall() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_debugmon() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_pendsv() {
-    loop {}
-}
-pub unsafe extern "C" fn isr_systick() {
-    loop {}
 }
