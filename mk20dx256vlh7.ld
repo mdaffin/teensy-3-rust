@@ -29,8 +29,8 @@ https://www.pjrc.com/teensy/K20P64M72SF1RM.pdf
 _sflashdata = LOADADDR(.data);
 
 MEMORY {
-    FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 256K
-    RAM  (rwx) : ORIGIN = 0x1FFF8000, LENGTH = 64K /* page 90 */
+    FLASH (rx) : ORIGIN = 0x00000000, LENGTH = 128K
+    RAM  (rwx) : ORIGIN = 0x1FFFE000, LENGTH = 16K /* page 90 */
 }
 
 SECTIONS {
