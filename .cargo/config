@@ -1,3 +1,6 @@
 [target.thumbv7em-none-eabi]
-linker = "arm-none-eabi-gcc"
-ar = "arm-none-eabi-ar"
+rustflags = [
+  "-C", "link-arg=-nostartfiles",
+  "-C", "link-arg=-nostdlib",
+  "-C", "link-arg=-Tlayout.ld",
+]
