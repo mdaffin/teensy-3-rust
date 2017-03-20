@@ -109,20 +109,24 @@ pub fn led_off() {
     }
 }
 
-pub fn delay(ms: i32) {
-    for _ in 0..ms * 250 {
-        unsafe {
-            asm!("NOP");
+pub fn delay(ms: u32) {
+    for _ in 0..ms {
+        for _ in 0..7200 {
+            unsafe {
+                asm!("NOP");
+            }
         }
     }
 }
 
 pub fn rust_loop() {
+    const CYCLE: u32 = 1000;
+    const ON: u32 = 20;
     loop {
         led_on();
-        delay(1000);
+        delay(ON);
         led_off();
-        delay(1000);
+        delay(CYCLE - ON);
     }
 }
 
